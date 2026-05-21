@@ -16,10 +16,9 @@
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            overflow: x-hidden;
+            overflow-x: hidden;
         }
 
-        /* Layout Principal: Tela do Jogo à Esquerda, Painéis à Direita */
         #arcade-container {
             display: flex;
             gap: 25px;
@@ -44,7 +43,6 @@
             display: block;
         }
 
-        /* Painel Lateral de UI e Tabelas (Fora do Jogo) */
         #sidebar {
             width: 360px;
             height: 708px;
@@ -71,7 +69,6 @@
             font-size: 18px;
         }
 
-        /* Inputs e Botões estilo Retro */
         .auth-box {
             display: flex;
             flex-direction: column;
@@ -86,7 +83,7 @@
             font-family: monospace;
             font-size: 14px;
             outline: none;
-            text-transform: uppercase; /* Força visualmente caixa alta */
+            text-transform: uppercase;
         }
         input:focus { border-color: #f1c40f; }
 
@@ -113,14 +110,12 @@
             margin-top: 5px;
         }
 
-        /* Status do Jogador Ativo */
         #active-stats p {
             margin: 6px 0;
             font-size: 15px;
             font-weight: bold;
         }
 
-        /* Tabela do Ranking Global Arcade */
         .arcade-table {
             width: 100%;
             border-collapse: collapse;
@@ -219,14 +214,13 @@
     </div>
 
     <div class="instructions">
-        Mover: <span class="key">W,A,S,D</span> ou <span class="key">Setas</span> | Atirar: <span class="key">Clique Esquerdo do Mouse</span> ou <span class="key">Espaço</span> (0.3s Cooldown)
+        Mover: <span class="key">W,A,S,D</span> ou <span class="key">Setas</span> | Atirar: <span class="key">Clique Esquerdo</span> ou <span class="key">Espaço</span> (0.3s Cooldown)
     </div>
 
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
-        // Configuração do Banco de Dados em Nuvem Compartilhado (Livre/Aberto)
         const CLOUD_URL = 'https://kvdb.io/ReiDaPradaria_Global_Arcade_v64/database';
 
         let currentScreen = 'AUTH'; 
@@ -234,8 +228,15 @@
         let currentUser = null;
         let accountDatabase = [];
 
-        // Estado do Jogo (Tamanho padronizado em 64px)
-        const GRID_SIZE = 64;
+        // OTIMIZAÇÃO: Constantes estáticas calculadas a 0.65x do tamanho original (64px -> ~42px)
+        const SCALE_FACTOR = 0.65;
+        const GRID_SIZE = 42; 
+        
+        // Limiares de colisão elevados ao quadrado para ganho extremo de performance (evita Math.sqrt)
+        const HIT_PLAYER_SQ = Math.pow(GRID_SIZE * 0.85, 2);
+        const HIT_BULLET_SQ = Math.pow(GRID_SIZE * 0.65, 2);
+        const HIT_ITEM_SQ   = Math.pow(GRID_SIZE * 0.90, 2);
+
         let score = 0;
         let gameOver = false;
         let frameCount = 0;
@@ -245,7 +246,6 @@
         let slowTimer = 0;
         let mouseX = 350, mouseY = 350;
 
-        // Controle de Inputs
         const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false, " ": false };
         let mousePressed = false;
 
@@ -265,13 +265,12 @@
         });
         window.addEventListener("keyup", (e) => { if (keys.hasOwnProperty(e.key)) keys[e.key] = false; });
 
-        // Definição das Entidades (Raio de colisão baseado no tamanho 64x64)
-        const player = { x: 350, y: 350, baseSpeed: 3.8, size: GRID_SIZE, cooldown: 0, maxCooldown: 18 }; // 18 frames = 0.3 segundos a 60fps
+        const player = { x: 350, y: 350, baseSpeed: 3.8, cooldown: 0, maxCooldown: 18 }; 
         let bullets = [];
         let enemies = [];
         let items = [];
 
-        // --- SISTEMA DE ÁUDIO SINTETIZADO (WEB AUDIO API) ---
+        // --- SISTEMA DE ÁUDIO SINTETIZADO ---
         let audioCtx = null;
         function initAudio() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -283,14 +282,11 @@
             let osc = audioCtx.createOscillator();
             let gain = audioCtx.createGain();
             osc.connect(gain); gain.connect(audioCtx.destination);
-            
             osc.type = 'sawtooth';
             osc.frequency.setValueAtTime(450, audioCtx.currentTime);
             osc.frequency.exponentialRampToValueAtTime(90, audioCtx.currentTime + 0.12);
-            
-            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
             gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
-            
             osc.start(); osc.stop(audioCtx.currentTime + 0.12);
         }
 
@@ -299,14 +295,11 @@
             let osc = audioCtx.createOscillator();
             let gain = audioCtx.createGain();
             osc.connect(gain); gain.connect(audioCtx.destination);
-            
             osc.type = 'triangle';
-            osc.frequency.setValueAtTime(120, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(130, audioCtx.currentTime);
             osc.frequency.linearRampToValueAtTime(30, audioCtx.currentTime + 0.18);
-            
-            gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.22, audioCtx.currentTime);
             gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.18);
-            
             osc.start(); osc.stop(audioCtx.currentTime + 0.18);
         }
 
@@ -318,7 +311,7 @@
                     let data = await res.json();
                     if (Array.isArray(data)) accountDatabase = data;
                 }
-            } catch (e) { console.log("Servidor em nuvem offline, rodando local."); }
+            } catch (e) { console.log("Nuvem em espera ou offline."); }
             buildLeaderboard();
         }
 
@@ -329,11 +322,10 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(accountDatabase)
                 });
-            } catch (e) { console.log("Erro ao salvar dados na nuvem."); }
+            } catch (e) { console.log("Erro de sincronização de rede."); }
             buildLeaderboard();
         }
 
-        // --- AUTENTICAÇÃO E INTERFACES ---
         function toggleAuthMode() {
             isRegisterMode = !isRegisterMode;
             document.getElementById("auth-title").innerText = isRegisterMode ? "CRIAR CONTA GLOBAL" : "SISTEMA ARCADE CLOUD";
@@ -347,24 +339,22 @@
 
             if(!userInp || !passInp) { alert("Preencha todos os campos!"); return; }
 
-            // VALIDAÇÃO: Apenas Letras e Números no Nome de Usuário
             const regexAlfaNumerico = /^[A-Z0-9]+$/;
             if (!regexAlfaNumerico.test(userInp)) {
-                alert("NOME INVÁLIDO!\nUse apenas letras e números. Caracteres especiais e espaços são proibidos no nome.");
+                alert("NOME INVÁLIDO!\nUse apenas letras e números, sem símbolos ou espaços.");
                 return;
             }
 
-            document.getElementById("btn-auth-action").innerText = "SINCRONIZANDO...";
-            await fetchCloudDatabase(); // Puxa dados mais recentes antes de validar
+            document.getElementById("btn-auth-action").innerText = "CONECTANDO NA REDE...";
+            await fetchCloudDatabase();
 
             if (isRegisterMode) {
                 const exists = accountDatabase.some(acc => acc.username === userInp);
                 if(exists) { 
-                    alert("Esse nome já existe na máquina global! Escolha outro."); 
+                    alert("Esse codinome já foi registrado globalmente!"); 
                     document.getElementById("btn-auth-action").innerText = "REGISTRAR E ENTRAR";
                     return; 
                 }
-
                 const newAccount = { username: userInp, password: passInp, highScore: 0 };
                 accountDatabase.push(newAccount);
                 await saveCloudDatabase();
@@ -372,7 +362,7 @@
             } else {
                 const account = accountDatabase.find(acc => acc.username === userInp && acc.password === passInp);
                 if(!account) { 
-                    alert("Usuário ou senha incorretos na rede!"); 
+                    alert("Dados incorretos ou inexistentes na rede!"); 
                     document.getElementById("btn-auth-action").innerText = "ENTRAR NA MÁQUINA";
                     return; 
                 }
@@ -393,7 +383,6 @@
             document.getElementById("panel-gameover").classList.add("hidden");
             document.getElementById("panel-ui").classList.add("hidden");
             document.getElementById("panel-auth").classList.remove("hidden");
-            document.getElementById("btn-auth-action").innerText = "ENTRAR NA MÁQUINA";
             document.getElementById("auth-user").value = ""; document.getElementById("auth-pass").value = "";
         }
 
@@ -415,10 +404,9 @@
             tbody.innerHTML = "";
 
             if(sortedRecords.length === 0) {
-                tbody.innerHTML = "<tr><td colspan='3' style='text-align:center;color:#888;'>Nenhum recorde ainda!</td></tr>";
+                tbody.innerHTML = "<tr><td colspan='3' style='text-align:center;color:#888;'>Nenhum registro ativo.</td></tr>";
                 return;
             }
-
             sortedRecords.forEach((rec, index) => {
                 const tr = document.createElement("tr");
                 tr.innerHTML = `<td>${index + 1}º</td><td>${rec.username}</td><td>${rec.highScore}</td>`;
@@ -426,8 +414,10 @@
             });
         }
 
-        // --- MOTOR DO JOGO ---
-        function getDistance(x1, y1, x2, y2) { return Math.sqrt((x2 - x1)**2 + (y2 - y1)**2); }
+        // OTIMIZAÇÃO: Cálculo de distância simplificado elevado ao quadrado (Roda liso em máquinas fracas)
+        function getSqDist(x1, y1, x2, y2) { 
+            return (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1); 
+        }
 
         function restartGame() {
             score = 0; gameOver = false; frameCount = 0; secondsElapsed = 0; difficultyLevel = 1; coffeeTimer = 0; slowTimer = 0;
@@ -448,29 +438,25 @@
 
             frameCount++;
             
-            // Cronômetro da Pradaria
+            // Mudança de níveis otimizada e acelerada para a cada 20 segundos
             if (frameCount % 60 === 0) {
                 secondsElapsed++;
                 let mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
                 let secs = String(secondsElapsed % 60).padStart(2, '0');
                 document.getElementById("timer").innerText = `${mins}:${secs}`;
 
-                if (secondsElapsed % 30 === 0) {
+                if (secondsElapsed % 20 === 0) {
                     difficultyLevel++;
                     document.getElementById("wave").innerText = `Nível ${difficultyLevel}`;
                 }
             }
 
-            // Gerenciadores de Efeito (Buffs)
-            if (coffeeTimer > 0) {
-                coffeeTimer--; document.getElementById("buff-coffee").style.display = "block";
-            } else { document.getElementById("buff-coffee").style.display = "none"; }
+            if (coffeeTimer > 0) coffeeTimer--;
+            if (slowTimer > 0) slowTimer--;
 
-            if (slowTimer > 0) {
-                slowTimer--; document.getElementById("buff-slow").style.display = "block";
-            } else { document.getElementById("buff-slow").style.display = "none"; }
+            document.getElementById("buff-coffee").style.display = coffeeTimer > 0 ? "block" : "none";
+            document.getElementById("buff-slow").style.display = slowTimer > 0 ? "block" : "none";
 
-            // Movimentação com limites de barreira ajustados para 64px
             let currentSpeed = player.baseSpeed + (coffeeTimer > 0 ? 2.5 : 0);
             let limitMargin = GRID_SIZE / 2 + 5;
 
@@ -479,16 +465,14 @@
             if ((keys.a || keys.ArrowLeft) && player.x > limitMargin) player.x -= currentSpeed;
             if ((keys.d || keys.ArrowRight) && player.x < canvas.width - limitMargin) player.x += currentSpeed;
 
-            // Sistema de Atirar (Mouse Esquerdo ou Espaço) com Cooldown Fixo de 0.3s (18 frames)
             if (player.cooldown > 0) player.cooldown--;
             if ((keys[" "] || mousePressed) && player.cooldown === 0) {
                 const angle = Math.atan2(mouseY - player.y, mouseX - player.x);
-                bullets.push({ x: player.x, y: player.y, vx: Math.cos(angle) * 11, vy: Math.sin(angle) * 11, size: 6 });
+                bullets.push({ x: player.x, y: player.y, vx: Math.cos(angle) * 11, vy: Math.sin(angle) * 11, size: 4 });
                 player.cooldown = player.maxCooldown;
                 playShootSound();
             }
 
-            // Movimentação dos Tiros
             for (let i = bullets.length - 1; i >= 0; i--) {
                 bullets[i].x += bullets[i].vx; bullets[i].y += bullets[i].vy;
                 if (bullets[i].x < 0 || bullets[i].x > canvas.width || bullets[i].y < 0 || bullets[i].y > canvas.height) {
@@ -496,8 +480,8 @@
                 }
             }
 
-            // Criação / Spawners de Inimigos (64x64)
-            let spawnInterval = Math.max(15, 95 - (difficultyLevel * 10));
+            // Spawner de Inimigos Aleatórios Baseados no Nível
+            let spawnInterval = Math.max(12, 90 - (difficultyLevel * 8));
             if (frameCount % spawnInterval === 0) {
                 let side = Math.floor(Math.random() * 4);
                 let ex, ey;
@@ -506,10 +490,31 @@
                 else if (side === 2) { ex = Math.random() * canvas.width; ey = canvas.height + 40; }
                 else { ex = -40; ey = Math.random() * canvas.height; }
 
-                enemies.push({ x: ex, y: ey, size: GRID_SIZE, baseSpeed: 1.5 + Math.random() * 0.6 + (difficultyLevel * 0.1) });
+                // Sorteador de classe de inimigo
+                let rand = Math.random();
+                let enemyType = 'normal';
+                let hp = 1;
+                let enemyScore = 10;
+                let speedMod = 1.0;
+
+                if (rand < 0.55) {
+                    enemyType = 'normal';
+                } else if (rand < 0.80) {
+                    enemyType = 'tank'; // Roxo: Lento, 2 de Vida, 20 Pontos
+                    hp = 2;
+                    enemyScore = 20;
+                    speedMod = 0.65;
+                } else {
+                    enemyType = 'speedy'; // Verde: Muito rápido, 1 de Vida, 10 Pontos
+                    hp = 1;
+                    enemyScore = 10;
+                    speedMod = 1.55;
+                }
+
+                let finalSpeed = (1.5 + Math.random() * 0.6 + (difficultyLevel * 0.12)) * speedMod;
+                enemies.push({ x: ex, y: ey, type: enemyType, hp: hp, maxHp: hp, score: enemyScore, baseSpeed: finalSpeed });
             }
 
-            // Lógica de Movimento e Impactos de Inimigos
             let enemySpeedModifier = (slowTimer > 0) ? 0.4 : 1.0;
 
             for (let i = enemies.length - 1; i >= 0; i--) {
@@ -518,38 +523,50 @@
                 enemy.x += Math.cos(angle) * (enemy.baseSpeed * enemySpeedModifier);
                 enemy.y += Math.sin(angle) * (enemy.baseSpeed * enemySpeedModifier);
 
-                // Colisão entre Personagem e Inimigo (Baseado na metade do tamanho de 64px)
-                if (getDistance(player.x, player.y, enemy.x, enemy.y) < 56) {
-                    gameOver = true; currentScreen = 'GAMEOVER';
-                    mousePressed = false;
+                // Verificação de Colisão com Jogador (Otimizado por Quadrados)
+                if (getSqDist(player.x, player.y, enemy.x, enemy.y) < HIT_PLAYER_SQ) {
+                    gameOver = true; currentScreen = 'GAMEOVER'; mousePressed = false;
                     document.getElementById("panel-ui").classList.add("hidden");
-                    document.getElementById("gameover-stats").innerText = `Pontos Totais: ${score}\nTempo Ativo: ${document.getElementById("timer").innerText}`;
+                    document.getElementById("gameover-stats").innerText = `Pontos Obtidos: ${score}\nTempo Ativo: ${document.getElementById("timer").innerText}`;
                     document.getElementById("panel-gameover").classList.remove("hidden");
                     saveScoreToAccount();
                     break;
                 }
 
-                // Colisão do Projétil derrubando Inimigo (+10 Pontos)
+                // Verificação de Impacto dos Projéteis
                 for (let j = bullets.length - 1; j >= 0; j--) {
-                    if (getDistance(enemy.x, enemy.y, bullets[j].x, bullets[j].y) < 36) {
+                    if (getSqDist(enemy.x, enemy.y, bullets[j].x, bullets[j].y) < HIT_BULLET_SQ) {
                         playHitSound();
-                        if (Math.random() < 0.22) {
-                            items.push({ x: enemy.x, y: enemy.y, type: Math.random() < 0.5 ? 'coffee' : 'slow', pulse: 0 });
+                        bullets.splice(j, 1);
+                        enemy.hp--;
+
+                        if (enemy.hp <= 0) {
+                            // Drop rate balanceado diminuído rigorosamente para 10%
+                            if (Math.random() < 0.10) {
+                                items.push({ x: enemy.x, y: enemy.y, type: Math.random() < 0.5 ? 'coffee' : 'slow', pulse: 0, lifetime: 600 }); // 600 frames = 10 segundos
+                            }
+                            score += enemy.score;
+                            document.getElementById("score").innerText = score;
+                            enemies.splice(i, 1);
                         }
-                        enemies.splice(i, 1); bullets.splice(j, 1);
-                        score += 10;
-                        document.getElementById("score").innerText = score;
                         break;
                     }
                 }
             }
 
-            // Captura de Itens Modificadores
+            // Coleta e Contador de Expiração dos Modificadores (Máximo 10s no chão)
             for (let i = items.length - 1; i >= 0; i--) {
                 items[i].pulse += 0.08;
-                if (getDistance(player.x, player.y, items[i].x, items[i].y) < 45) {
-                    if (items[i].type === 'coffee') coffeeTimer = 10 * 60; // 10s
-                    else if (items[i].type === 'slow') slowTimer = 12 * 60; // 12s
+                items[i].lifetime--;
+
+                if (items[i].lifetime <= 0) {
+                    items.splice(i, 1);
+                    continue;
+                }
+
+                if (getSqDist(player.x, player.y, items[i].x, items[i].y) < HIT_ITEM_SQ) {
+                    if (items[i].type === 'coffee') coffeeTimer = 10 * 60; 
+                    else if (items[i].type === 'slow') slowTimer = 12 * 60; 
                     items.splice(i, 1);
                 }
             }
@@ -560,37 +577,32 @@
 
             if (currentScreen === 'AUTH') {
                 ctx.fillStyle = "#1a110b"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = "#f1c40f"; ctx.font = "bold 24px monospace"; ctx.textAlign = "center";
-                ctx.fillText("INICIANDO MÁQUINA DE FLIPERAMA...", 350, 330);
+                ctx.fillStyle = "#f1c40f"; ctx.font = "bold 22px monospace"; ctx.textAlign = "center";
+                ctx.fillText("MAQUINA ARCADE ONLINE PRONTA", 350, 330);
                 ctx.fillStyle = "#bdc3c7"; ctx.font = "14px monospace";
-                ctx.fillText("Faça o login no painel lateral para jogar", 350, 370);
+                ctx.fillText("Insira sua ficha fazendo login ao lado", 350, 370);
                 return;
             }
 
-            // --- ESTILIZAÇÃO DOS GRÁFICOS (TAMANHO PADRONIZADO 64x64 COM CONTORNO BLACK) ---
-
-            // 1. Desenho dos Modificadores (Itens)
+            // 1. Desenho dos Modificadores (Itens com Alerta Visual Desaparecendo)
             items.forEach(item => {
+                // Se faltar menos de 2 segundos (120 frames), faz o item piscar no estilo fliperama antigo
+                if (item.lifetime < 120 && Math.floor(item.lifetime / 8) % 2 === 0) return;
+
                 let offset = Math.sin(item.pulse) * 5;
                 ctx.save();
                 ctx.translate(item.x, item.y + offset);
+                ctx.scale(SCALE_FACTOR, SCALE_FACTOR); // Reduzido perfeitamente em 0.65x
 
-                // Caixa Base do Item com Borda Preta
                 ctx.fillStyle = "#000"; ctx.fillRect(-22, -22, 44, 44);
                 ctx.fillStyle = item.type === 'coffee' ? '#e67e22' : '#2ecc71';
                 ctx.fillRect(-19, -19, 38, 38);
 
                 if (item.type === 'coffee') {
-                    // ÍCONE DE CAFÉ (Xícara Pixelada)
-                    ctx.fillStyle = "#fff";
-                    ctx.fillRect(-10, -4, 20, 14); // Corpo xícara
-                    ctx.fillRect(10, -1, 4, 6);     // Asa xícara
-                    ctx.fillStyle = "#795548"; 
-                    ctx.fillRect(-10, -4, 20, 3);   // Líquido café interno
+                    ctx.fillStyle = "#fff"; ctx.fillRect(-10, -4, 20, 14); 
+                    ctx.fillRect(10, -1, 4, 6); ctx.fillStyle = "#795548"; ctx.fillRect(-10, -4, 20, 3);   
                 } else {
-                    // ÍCONE DE DESACELERAR (Setas Verdes para Baixo)
-                    ctx.fillStyle = "#fff";
-                    ctx.beginPath();
+                    ctx.fillStyle = "#fff"; ctx.beginPath();
                     ctx.moveTo(0, 12); ctx.lineTo(-12, -4); ctx.lineTo(-5, -4);
                     ctx.lineTo(-5, -14); ctx.lineTo(5, -14); ctx.lineTo(5, -4);
                     ctx.lineTo(12, -4); ctx.closePath(); ctx.fill();
@@ -598,70 +610,77 @@
                 ctx.restore();
             });
 
-            // 2. Desenho dos Inimigos (Monstros 64x64 com Contorno)
+            // 2. Desenho das Classes de Inimigos (Redimensionados e Customizados)
             enemies.forEach(e => {
                 ctx.save();
                 ctx.translate(e.x, e.y);
+                ctx.scale(SCALE_FACTOR, SCALE_FACTOR); // Reduzido perfeitamente em 0.65x
 
-                // Contorno Geral (Garante o visual de borda preta espessa de fliperama)
                 ctx.strokeStyle = "#000"; ctx.lineWidth = 5; ctx.lineJoin = "miter";
                 ctx.strokeRect(-32, -32, 64, 64);
 
-                // Preenchimento do Corpo Vermelho
-                ctx.fillStyle = "#e74c3c"; ctx.fillRect(-32, -32, 64, 64);
-
-                // Detalhes da Face do Monstro
-                ctx.fillStyle = "#000";
-                ctx.fillRect(-18, -14, 12, 12); ctx.fillRect(6, -14, 12, 12); // Contorno Olhos
-                ctx.fillStyle = "#f1c40f";
-                ctx.fillRect(-16, -12, 8, 8); ctx.fillRect(8, -12, 8, 8);     // Pupilas Amarelas
-
-                ctx.fillStyle = "#7f2216"; ctx.fillRect(-16, 12, 32, 8);      // Boca Roxa/Escura
-                ctx.fillStyle = "#000"; ctx.strokeRect(-16, 12, 32, 8);
-
-                // Chifres do Vilão
-                ctx.fillStyle = "#962d22";
-                ctx.beginPath(); ctx.moveTo(-20, -32); ctx.lineTo(-26, -46); ctx.lineTo(-8, -32); ctx.closePath(); ctx.fill(); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(20, -32); ctx.lineTo(26, -46); ctx.lineTo(8, -32); ctx.closePath(); ctx.fill(); ctx.stroke();
+                if (e.type === 'normal') {
+                    // INIMIGO PADRÃO: VERMELHO
+                    ctx.fillStyle = "#e74c3c"; ctx.fillRect(-32, -32, 64, 64);
+                    ctx.fillStyle = "#000"; ctx.fillRect(-18, -14, 12, 12); ctx.fillRect(6, -14, 12, 12); 
+                    ctx.fillStyle = "#f1c40f"; ctx.fillRect(-16, -12, 8, 8); ctx.fillRect(8, -12, 8, 8);     
+                    ctx.fillStyle = "#7f2216"; ctx.fillRect(-16, 12, 32, 8);      
+                    ctx.beginPath(); ctx.moveTo(-20, -32); ctx.lineTo(-26, -46); ctx.lineTo(-8, -32); ctx.closePath(); ctx.fill(); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(20, -32); ctx.lineTo(26, -46); ctx.lineTo(8, -32); ctx.closePath(); ctx.fill(); ctx.stroke();
+                } 
+                else if (e.type === 'tank') {
+                    // NOVO INIMIGO ROXO: ELMO DE PROTEÇÃO E OLHO DE CICLOPE
+                    ctx.fillStyle = "#9b59b6"; ctx.fillRect(-32, -32, 64, 64);
+                    ctx.fillStyle = "#5d3f8a"; ctx.fillRect(-32, 10, 64, 22); // Armadura inferior
+                    ctx.fillStyle = "#000"; ctx.strokeRect(-32, 10, 64, 22);
+                    // Elmo Placa de Aço Superior
+                    ctx.fillStyle = "#7f8c8d"; ctx.fillRect(-32, -32, 64, 18); ctx.strokeRect(-32, -32, 64, 18);
+                    // Olho Ciclope Único Energizado
+                    ctx.fillStyle = "#000"; ctx.fillRect(-14, -10, 28, 18);
+                    ctx.fillStyle = "#f1c40f"; ctx.fillRect(-10, -7, 20, 12);
+                    ctx.fillStyle = e.hp > 1 ? "#e74c3c" : "#fff"; ctx.fillRect(-4, -4, 8, 6); // Muda cor se tomar 1 tiro
+                } 
+                else if (e.type === 'speedy') {
+                    // NOVO INIMIGO VERDE: VELOZ, AERODINÂMICO
+                    ctx.fillStyle = "#2ecc71"; ctx.fillRect(-32, -32, 64, 64);
+                    // Listras de Velocidade Esportivas Laterais (Skin ágil)
+                    ctx.fillStyle = "#27ae60"; ctx.fillRect(-32, -20, 10, 40); ctx.fillRect(22, -20, 10, 40);
+                    // Olhos Puxados Malignos de Inseto Ninja
+                    ctx.fillStyle = "#000";
+                    ctx.beginPath(); ctx.moveTo(-26, -16); ctx.lineTo(-6, -6); ctx.lineTo(-24, -2); ctx.closePath(); ctx.fill();
+                    ctx.beginPath(); ctx.moveTo(26, -16); ctx.lineTo(6, -6); ctx.lineTo(24, -2); ctx.closePath(); ctx.fill();
+                    ctx.fillStyle = "#f39c12"; ctx.fillRect(-16, -11, 4, 3); ctx.fillRect(12, -11, 4, 3);
+                    // Máscara Protetora Aerodinâmica
+                    ctx.fillStyle = "#d35400"; ctx.fillRect(-18, 12, 36, 12); ctx.strokeRect(-18, 12, 36, 12);
+                }
 
                 ctx.restore();
             });
 
-            // 3. Desenho do Caubói (Jogador 64x64 com Contorno)
+            // 3. Desenho do Caubói (Jogador Reduzido)
             ctx.save();
             ctx.translate(player.x, player.y);
+            ctx.scale(SCALE_FACTOR, SCALE_FACTOR); // Reduzido perfeitamente em 0.65x
 
-            // Contorno do Corpo e Chapéu
             ctx.strokeStyle = "#000"; ctx.lineWidth = 5;
-            ctx.strokeRect(-24, -6, 48, 38); // Borda corpo
+            ctx.strokeRect(-24, -6, 48, 38); ctx.fillStyle = "#2980b9"; ctx.fillRect(-24, -6, 48, 38);
+            ctx.strokeRect(-16, -28, 32, 22); ctx.fillStyle = "#ffdbac"; ctx.fillRect(-16, -28, 32, 22);
+            ctx.fillStyle = "#5c4033"; ctx.beginPath(); ctx.rect(-34, -32, 68, 6); ctx.rect(-18, -48, 36, 16); ctx.closePath(); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = "#d35400"; ctx.fillRect(-18, -36, 36, 4); 
 
-            // Corpo (Camisa azul)
-            ctx.fillStyle = "#2980b9"; ctx.fillRect(-24, -6, 48, 38);
-            
-            // Rosto do Caubói
-            ctx.strokeRect(-16, -28, 32, 22);
-            ctx.fillStyle = "#ffdbac"; ctx.fillRect(-16, -28, 32, 22);
-
-            // Chapéu Caubói Marrom Clássico
-            ctx.fillStyle = "#5c4033";
-            ctx.beginPath(); ctx.rect(-34, -32, 68, 6); ctx.rect(-18, -48, 36, 16); ctx.closePath(); ctx.fill(); ctx.stroke();
-            ctx.fillStyle = "#d35400"; ctx.fillRect(-18, -36, 36, 4); // Faixa Vermelha
-
-            // Olhos Dinâmicos (Seguem a mira do cursor)
             const lookAngle = Math.atan2(mouseY - player.y, mouseX - player.x);
             let ox = Math.cos(lookAngle) * 4, oy = Math.sin(lookAngle) * 2;
-            ctx.fillStyle = "#000";
-            ctx.fillRect(-10 + ox, -20 + oy, 5, 6); ctx.fillRect(5 + ox, -20 + oy, 5, 6);
+            ctx.fillStyle = "#000"; ctx.fillRect(-10 + ox, -20 + oy, 5, 6); ctx.fillRect(5 + ox, -20 + oy, 5, 6);
 
             ctx.restore();
 
-            // 4. Desenho dos Tiros (Balas)
+            // 4. Desenho Projéteis Ajustados
             ctx.fillStyle = "#2c3e50"; ctx.strokeStyle = "#000"; ctx.lineWidth = 2;
             bullets.forEach(b => {
                 ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
             });
 
-            // 5. Retículo da Mira (Crosshair)
+            // 5. Retículo da Mira
             ctx.strokeStyle = "#e74c3c"; ctx.lineWidth = 2; ctx.beginPath();
             ctx.arc(mouseX, mouseY, 7, 0, Math.PI * 2);
             ctx.moveTo(mouseX - 14, mouseY); ctx.lineTo(mouseX + 14, mouseY);
@@ -673,7 +692,6 @@
             update(); draw(); requestAnimationFrame(gameLoop);
         }
 
-        // Chamada Inicial para Carregar a Tabela da Nuvem assim que abre a página
         fetchCloudDatabase();
         gameLoop();
     </script>
