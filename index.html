@@ -3,23 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arcade - Rei da Pradaria</title>
+    <title>Arcade Global - Rei da Pradaria</title>
     <style>
         body {
             margin: 0;
             padding: 0;
-            background-color: #111;
+            background-color: #0d0d0d;
             color: #fff;
             font-family: 'Courier New', Courier, monospace;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
-            overflow: hidden;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        #arcade-container {
+            display: flex;
+            gap: 25px;
+            background: #1a110b;
+            padding: 20px;
+            border-radius: 12px;
+            border: 6px solid #3d2314;
+            box-shadow: 0 0 40px rgba(0,0,0,0.8);
+            align-items: flex-start;
         }
         
-        #game-container {
+        #game-area {
             position: relative;
             width: 700px;
             height: 700px;
@@ -27,70 +38,66 @@
 
         canvas {
             background-color: #d2b48c;
-            border: 8px solid #3d2314;
-            box-shadow: 0 0 30px rgba(0,0,0,0.9);
+            border: 4px solid #000;
             image-rendering: pixelated;
+            display: block;
         }
 
-        /* Telas de Interface (Login, Registro e Game Over) */
-        .overlay-screen {
-            position: absolute;
-            top: 8px; left: 8px;
-            width: 700px;
-            height: 700px;
-            background: rgba(15, 10, 5, 0.95);
+        #sidebar {
+            width: 360px;
+            height: 708px;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
+            gap: 15px;
+        }
+
+        .panel {
+            background: #2c1a10;
+            border: 4px solid #000;
+            padding: 15px;
+            border-radius: 6px;
         }
 
         .hidden { display: none !important; }
 
-        h1, h2 {
+        h2, h3 {
             color: #f1c40f;
-            text-shadow: 2px 2px #000;
-            margin-bottom: 20px;
+            text-shadow: 1px 1px #000;
+            margin-top: 0;
+            margin-bottom: 12px;
             text-align: center;
+            font-size: 18px;
         }
 
         .auth-box {
-            background: #2c1a10;
-            border: 4px solid #3d2314;
-            padding: 25px;
-            border-radius: 8px;
-            width: 320px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
         }
 
         input {
-            background: #111;
+            background: #000;
             border: 2px solid #5c4033;
             color: #fff;
             padding: 10px;
             font-family: monospace;
             font-size: 14px;
             outline: none;
+            text-transform: uppercase;
         }
-
         input:focus { border-color: #f1c40f; }
 
         button {
             background: #d35400;
             color: white;
-            border: none;
+            border: 2px solid #000;
             padding: 12px;
             font-family: monospace;
             font-weight: bold;
             font-size: 15px;
             cursor: pointer;
-            transition: background 0.2s;
             box-shadow: 0 4px #962d22;
         }
-
         button:hover { background: #e67e22; }
         button:active { transform: translateY(2px); box-shadow: 0 2px #962d22; }
 
@@ -100,58 +107,47 @@
             text-align: center;
             cursor: pointer;
             text-decoration: underline;
+            margin-top: 5px;
         }
 
-        /* Elementos In-Game */
-        #ui {
-            position: absolute;
-            top: 15px; left: 20px;
-            font-size: 16px; font-weight: bold; color: #fff;
-            background: rgba(0, 0, 0, 0.75);
-            padding: 10px 15px; border-radius: 4px;
-            border: 2px solid #3d2314; pointer-events: none;
-            line-height: 1.4; z-index: 5;
+        #active-stats p {
+            margin: 6px 0;
+            font-size: 15px;
+            font-weight: bold;
         }
 
-        #buffs {
-            position: absolute;
-            top: 15px; right: 20px;
-            display: flex; flex-direction: column; gap: 5px;
-            pointer-events: none; z-index: 5;
-        }
-
-        .buff-bar {
-            background: rgba(0,0,0,0.8); padding: 5px 10px;
-            border-radius: 4px; font-size: 12px; display: none;
-            border: 1px solid #fff;
-        }
-
-        /* Tabela Estilo Arcade */
         .arcade-table {
-            width: 80%;
+            width: 100%;
             border-collapse: collapse;
-            margin: 20px 0;
-            font-size: 16px;
+            font-size: 14px;
         }
-
         .arcade-table th, .arcade-table td {
-            padding: 8px;
+            padding: 6px;
             text-align: left;
+            border-bottom: 1px dashed #5c4033;
         }
-
         .arcade-table th {
             color: #e74c3c;
-            border-bottom: 2px dashed #e74c3c;
+            border-bottom: 2px solid #000;
         }
-
         .arcade-table tr:nth-child(1) td { color: #f1c40f; font-weight: bold; } 
         .arcade-table tr:nth-child(2) td { color: #e67e22; } 
         .arcade-table tr:nth-child(3) td { color: #9b59b6; } 
 
+        #buffs {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        .buff-indicator {
+            padding: 5px; background: #000; border: 1px solid #fff;
+            font-size: 11px; border-radius: 4px; display: none;
+        }
+
         .instructions {
             margin-top: 15px; text-align: center;
-            background: #2a2a2a; padding: 10px 15px;
-            border-radius: 5px; border: 2px solid #444;
+            background: #1a1a1a; padding: 10px 20px;
+            border-radius: 5px; border: 2px solid #333;
             font-size: 13px;
         }
         span.key { color: #f1c40f; font-weight: bold; }
@@ -159,67 +155,87 @@
 </head>
 <body>
 
-    <div id="game-container">
-        <div id="ui" class="hidden">
-            Jogador: <span id="ui-username" style="color: #3498db;">---</span><br>
-            Pontos: <span id="score">0</span><br>
-            Recorde Pessoal: <span id="personal-best" style="color: #2ecc71;">0</span><br>
-            Tempo: <span id="timer">00:00</span><br>
-            Dificuldade: <span id="wave" style="color: #e74c3c;">Nível 1</span>
-        </div>
-        
-        <div id="buffs">
-            <div id="buff-coffee" class="buff-bar" style="border-color: #e67e22; color: #e67e22;">☕ Velocidade Máxima!</div>
-            <div id="buff-slow" class="buff-bar" style="border-color: #9b59b6; color: #9b59b6;">⏱️ Inimigos Lentos!</div>
+    <div id="arcade-container">
+        <div id="game-area">
+            <canvas id="gameCanvas" width="700" height="700"></canvas>
         </div>
 
-        <div id="screen-auth" class="overlay-screen">
-            <h1 id="auth-title">REI DA PRADARIA<br><span style="font-size: 20px; color:#bdc3c7;">SISTEMA ARCADE</span></h1>
-            <div class="auth-box">
-                <input type="text" id="auth-user" placeholder="NOME DE USUÁRIO" maxlength="12" oninput="this.value = this.value.toUpperCase()">
-                <input type="password" id="auth-pass" placeholder="SENHA">
-                <button id="btn-auth-action" onclick="handleAuth()">ENTRAR / JOGAR</button>
-                <div id="auth-toggle" class="toggle-link" onclick="toggleAuthMode()">Não tem conta? Cadastre-se aqui</div>
-            </div>
-        </div>
-
-        <div id="screen-gameover" class="overlay-screen hidden">
-            <h2 style="font-size: 40px; margin-bottom: 5px;">FIM DE JOGO</h2>
-            <p id="gameover-stats" style="color: #bdc3c7; margin-bottom: 20px;"></p>
+        <div id="sidebar">
             
-            <h3 style="color: #f1c40f; margin: 0;">🏆 MAIORES PONTUAÇÕES DA MÁQUINA 🏆</h3>
-            <table class="arcade-table">
-                <thead>
-                    <tr>
-                        <th>POS</th>
-                        <th>JOGADOR</th>
-                        <th>SCORE</th>
-                    </tr>
-                </thead>
-                <tbody id="leaderboard-rows">
+            <div id="panel-auth" class="panel">
+                <h2 id="auth-title">SISTEMA ARCADE CLOUD</h2>
+                <div class="auth-box">
+                    <input type="text" id="auth-user" placeholder="NOME DO JOGADOR" maxlength="10" oninput="this.value = this.value.toUpperCase()">
+                    <input type="password" id="auth-pass" placeholder="SENHA">
+                    <button id="btn-auth-action" onclick="handleAuth()">ENTRAR NA MÁQUINA</button>
+                    <div id="auth-toggle" class="toggle-link" onclick="toggleAuthMode()">Não tem conta? Cadastre-se</div>
+                </div>
+            </div>
+
+            <div id="panel-ui" class="panel hidden">
+                <h2>STATUS DO CAUBÓI</h2>
+                <div id="active-stats">
+                    <p>JOGADOR: <span id="ui-username" style="color: #3498db;">---</span></p>
+                    <p>PONTOS: <span id="score" style="color: #f1c40f;">0</span></p>
+                    <p>RECORDE PESSOAL: <span id="personal-best" style="color: #2ecc71;">0</span></p>
+                    <p>TEMPO VIVO: <span id="timer">00:00</span></p>
+                    <p>DIFICULDADE: <span id="wave" style="color: #e74c3c;">Nível 1</span></p>
+                </div>
+                <div id="buffs">
+                    <div id="buff-coffee" class="buff-indicator" style="border-color: #e67e22; color: #e67e22;">☕ CAFÉ!</div>
+                    <div id="buff-slow" class="buff-indicator" style="border-color: #2ecc71; color: #2ecc71;">⬇️ LENTO!</div>
+                </div>
+            </div>
+
+            <div id="panel-gameover" class="panel hidden" style="background: #3a1616;">
+                <h2 style="color: #e74c3c; font-size: 22px;">FIM DE JOGO</h2>
+                <p id="gameover-stats" style="text-align: center; margin: 10px 0; font-size: 14px;"></p>
+                <button onclick="restartGame()" style="width: 100%; font-size: 16px; background: #27ae60; box-shadow: 0 4px #1e7e43;">JOGAR NOVAMENTE</button>
+                <div class="toggle-link" onclick="logout()" style="color: #e74c3c; margin-top: 10px;">Sair da Conta</div>
+            </div>
+
+            <div id="panel-leaderboard" class="panel" style="flex-grow: 1; overflow-y: auto;">
+                <h3>🏆 MAIORES RECORDES MUNDIAIS 🏆</h3>
+                <table class="arcade-table">
+                    <thead>
+                        <tr>
+                            <th>POS</th>
+                            <th>JOGADOR</th>
+                            <th>SCORE</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-rows">
+                        <tr><td colspan="3" style="text-align:center; color:#888;">Carregando nuvem...</td></tr>
                     </tbody>
-            </table>
+                </table>
+            </div>
 
-            <button onclick="restartGame()" style="width: 250px; font-size: 18px;">JOGAR NOVAMENTE</button>
-            <div class="toggle-link" onclick="logout()" style="margin-top: 15px; color: #e74c3c;">Sair da Conta</div>
         </div>
-
-        <canvas id="gameCanvas" width="700" height="700"></canvas>
     </div>
 
     <div class="instructions">
-        Mover: <span class="key">W,A,S,D</span> / <span class="key">Setas</span> | Mira: <span class="key">Mouse</span> | Atirar: <span class="key">Espaço</span>
+        Mover: <span class="key">W,A,S,D</span> ou <span class="key">Setas</span> | Atirar: <span class="key">Clique Esquerdo</span> ou <span class="key">Espaço</span> (0.3s Cooldown)
     </div>
 
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
+        const CLOUD_URL = 'https://kvdb.io/ReiDaPradaria_Global_Arcade_v64/database';
+
         let currentScreen = 'AUTH'; 
         let isRegisterMode = false;
         let currentUser = null;
+        let accountDatabase = [];
 
-        let accountDatabase = JSON.parse(localStorage.getItem('prairie_king_accounts')) || [];
+        // OTIMIZAÇÃO: Constantes estáticas calculadas a 0.65x do tamanho original (64px -> ~42px)
+        const SCALE_FACTOR = 0.65;
+        const GRID_SIZE = 42; 
+        
+        // Limiares de colisão elevados ao quadrado para ganho extremo de performance (evita Math.sqrt)
+        const HIT_PLAYER_SQ = Math.pow(GRID_SIZE * 0.85, 2);
+        const HIT_BULLET_SQ = Math.pow(GRID_SIZE * 0.65, 2);
+        const HIT_ITEM_SQ   = Math.pow(GRID_SIZE * 0.90, 2);
 
         let score = 0;
         let gameOver = false;
@@ -231,67 +247,130 @@
         let mouseX = 350, mouseY = 350;
 
         const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false, " ": false };
+        let mousePressed = false;
 
         canvas.addEventListener("mousemove", (e) => {
             const rect = canvas.getBoundingClientRect();
             mouseX = e.clientX - rect.left;
             mouseY = e.clientY - rect.top;
         });
+        canvas.addEventListener("mousedown", (e) => { if(e.button === 0) { mousePressed = true; initAudio(); } });
+        canvas.addEventListener("mouseup", (e) => { if(e.button === 0) mousePressed = false; });
 
         window.addEventListener("keydown", (e) => { 
             if (keys.hasOwnProperty(e.key)) {
                 keys[e.key] = true;
-                if (currentScreen === 'PLAYING' && (e.key === " " || e.key.startsWith("Arrow"))) e.preventDefault();
+                if (currentScreen === 'PLAYING') e.preventDefault();
             } 
         });
         window.addEventListener("keyup", (e) => { if (keys.hasOwnProperty(e.key)) keys[e.key] = false; });
 
-        const player = { x: 350, y: 350, baseSpeed: 3.5, size: 16, cooldown: 0, maxCooldown: 12 };
+        const player = { x: 350, y: 350, baseSpeed: 3.8, cooldown: 0, maxCooldown: 18 }; 
         let bullets = [];
         let enemies = [];
         let items = [];
 
-        // --- SISTEMA DE CONTAS & VALIDAÇÕES ---
-        function toggleAuthMode() {
-            isRegisterMode = !isRegisterMode;
-            document.getElementById("auth-title").innerHTML = isRegisterMode ? "CRIAR NOVA CONTA<br><span style='font-size:14px;color:#e67e22;'>REGISTRE SEU SEGREDO</span>" : "REI DA PRADARIA<br><span style='font-size: 20px; color:#bdc3c7;'>SISTEMA ARCADE</span>";
-            document.getElementById("btn-auth-action").innerText = isRegisterMode ? "CADASTRAR E ENTRAR" : "ENTRAR / JOGAR";
-            document.getElementById("auth-toggle").innerText = isRegisterMode ? "Já tem conta? Faça Login" : "Não tem conta? Cadastre-se aqui";
+        // --- SISTEMA DE ÁUDIO SINTETIZADO ---
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
         }
 
-        function handleAuth() {
-            // Garante a transformação para letras maiúsculas e remove espaços nas pontas
+        function playShootSound() {
+            if (!audioCtx) return;
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(450, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(90, audioCtx.currentTime + 0.12);
+            gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.12);
+        }
+
+        function playHitSound() {
+            if (!audioCtx) return;
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(130, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(30, audioCtx.currentTime + 0.18);
+            gain.gain.setValueAtTime(0.22, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.18);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.18);
+        }
+
+        // --- BANCO DE DADOS EM NUVEM COMPARTILHADO ---
+        async function fetchCloudDatabase() {
+            try {
+                let res = await fetch(CLOUD_URL);
+                if (res.ok) {
+                    let data = await res.json();
+                    if (Array.isArray(data)) accountDatabase = data;
+                }
+            } catch (e) { console.log("Nuvem em espera ou offline."); }
+            buildLeaderboard();
+        }
+
+        async function saveCloudDatabase() {
+            try {
+                await fetch(CLOUD_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(accountDatabase)
+                });
+            } catch (e) { console.log("Erro de sincronização de rede."); }
+            buildLeaderboard();
+        }
+
+        function toggleAuthMode() {
+            isRegisterMode = !isRegisterMode;
+            document.getElementById("auth-title").innerText = isRegisterMode ? "CRIAR CONTA GLOBAL" : "SISTEMA ARCADE CLOUD";
+            document.getElementById("btn-auth-action").innerText = isRegisterMode ? "REGISTRAR E ENTRAR" : "ENTRAR NA MÁQUINA";
+            document.getElementById("auth-toggle").innerText = isRegisterMode ? "Já tem conta? Faça Login" : "Não tem conta? Cadastre-se";
+        }
+
+        async function handleAuth() {
             let userInp = document.getElementById("auth-user").value.trim().toUpperCase();
             const passInp = document.getElementById("auth-pass").value;
 
             if(!userInp || !passInp) { alert("Preencha todos os campos!"); return; }
 
-            // VALIDAÇÃO: Aceita apenas letras (A-Z) e números (0-9). Qualquer símbolo ou espaço é barrado.
             const regexAlfaNumerico = /^[A-Z0-9]+$/;
             if (!regexAlfaNumerico.test(userInp)) {
-                alert("NOME INVÁLIDO!\nO usuário deve conter apenas letras e números.\n(Caracteres especiais e espaços não são permitidos)");
+                alert("NOME INVÁLIDO!\nUse apenas letras e números, sem símbolos ou espaços.");
                 return;
             }
 
-            if (isRegisterMode) {
-                // Registro
-                const exists = accountDatabase.some(acc => acc.username === userInp);
-                if(exists) { alert("Nome de usuário já está em uso! Escolha outro."); return; }
+            document.getElementById("btn-auth-action").innerText = "CONECTANDO NA REDE...";
+            await fetchCloudDatabase();
 
+            if (isRegisterMode) {
+                const exists = accountDatabase.some(acc => acc.username === userInp);
+                if(exists) { 
+                    alert("Esse codinome já foi registrado globalmente!"); 
+                    document.getElementById("btn-auth-action").innerText = "REGISTRAR E ENTRAR";
+                    return; 
+                }
                 const newAccount = { username: userInp, password: passInp, highScore: 0 };
                 accountDatabase.push(newAccount);
-                localStorage.setItem('prairie_king_accounts', JSON.stringify(accountDatabase));
+                await saveCloudDatabase();
                 currentUser = newAccount;
-                alert("Conta criada com sucesso!");
             } else {
-                // Login
                 const account = accountDatabase.find(acc => acc.username === userInp && acc.password === passInp);
-                if(!account) { alert("Usuário ou senha incorretos!"); return; }
+                if(!account) { 
+                    alert("Dados incorretos ou inexistentes na rede!"); 
+                    document.getElementById("btn-auth-action").innerText = "ENTRAR NA MÁQUINA";
+                    return; 
+                }
                 currentUser = account;
             }
 
-            document.getElementById("screen-auth").classList.add("hidden");
-            document.getElementById("ui").classList.remove("hidden");
+            document.getElementById("panel-auth").classList.add("hidden");
+            document.getElementById("panel-ui").classList.remove("hidden");
             document.getElementById("ui-username").innerText = currentUser.username;
             document.getElementById("personal-best").innerText = currentUser.highScore;
             
@@ -300,32 +379,34 @@
         }
 
         function logout() {
-            currentUser = null;
-            currentScreen = 'AUTH';
-            document.getElementById("screen-gameover").classList.add("hidden");
-            document.getElementById("ui").classList.add("hidden");
-            document.getElementById("screen-auth").classList.remove("hidden");
-            document.getElementById("auth-user").value = "";
-            document.getElementById("auth-pass").value = "";
+            currentUser = null; currentScreen = 'AUTH';
+            document.getElementById("panel-gameover").classList.add("hidden");
+            document.getElementById("panel-ui").classList.add("hidden");
+            document.getElementById("panel-auth").classList.remove("hidden");
+            document.getElementById("auth-user").value = ""; document.getElementById("auth-pass").value = "";
         }
 
-        function saveScoreToAccount() {
+        async function saveScoreToAccount() {
             const accIndex = accountDatabase.findIndex(acc => acc.username === currentUser.username);
             if(accIndex !== -1) {
                 if(score > accountDatabase[accIndex].highScore) {
                     accountDatabase[accIndex].highScore = score;
                     currentUser.highScore = score;
-                    localStorage.setItem('prairie_king_accounts', JSON.stringify(accountDatabase));
+                    await saveCloudDatabase();
                     document.getElementById("personal-best").innerText = score;
                 }
             }
         }
 
         function buildLeaderboard() {
-            const sortedRecords = [...accountDatabase].sort((a,b) => b.highScore - a.highScore).slice(0, 5);
+            const sortedRecords = [...accountDatabase].sort((a,b) => b.highScore - a.highScore).slice(0, 7);
             const tbody = document.getElementById("leaderboard-rows");
             tbody.innerHTML = "";
 
+            if(sortedRecords.length === 0) {
+                tbody.innerHTML = "<tr><td colspan='3' style='text-align:center;color:#888;'>Nenhum registro ativo.</td></tr>";
+                return;
+            }
             sortedRecords.forEach((rec, index) => {
                 const tr = document.createElement("tr");
                 tr.innerHTML = `<td>${index + 1}º</td><td>${rec.username}</td><td>${rec.highScore}</td>`;
@@ -333,28 +414,21 @@
             });
         }
 
-        // --- MOTOR DO JOGO ---
-        function getDistance(x1, y1, x2, y2) { return Math.sqrt((x2 - x1)**2 + (y2 - y1)**2); }
+        // OTIMIZAÇÃO: Cálculo de distância simplificado elevado ao quadrado (Roda liso em máquinas fracas)
+        function getSqDist(x1, y1, x2, y2) { 
+            return (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1); 
+        }
 
         function restartGame() {
-            score = 0;
-            gameOver = false;
-            frameCount = 0;
-            secondsElapsed = 0;
-            difficultyLevel = 1;
-            coffeeTimer = 0;
-            slowTimer = 0;
-            
-            player.x = canvas.width / 2;
-            player.y = canvas.height / 2;
-            bullets = [];
-            enemies = [];
-            items = [];
+            score = 0; gameOver = false; frameCount = 0; secondsElapsed = 0; difficultyLevel = 1; coffeeTimer = 0; slowTimer = 0;
+            player.x = canvas.width / 2; player.y = canvas.height / 2;
+            bullets = []; enemies = []; items = [];
 
             document.getElementById("score").innerText = "0";
             document.getElementById("timer").innerText = "00:00";
             document.getElementById("wave").innerText = "Nível 1";
-            document.getElementById("screen-gameover").classList.add("hidden");
+            document.getElementById("panel-gameover").classList.add("hidden");
+            document.getElementById("panel-ui").classList.remove("hidden");
             
             currentScreen = 'PLAYING';
         }
@@ -364,62 +438,81 @@
 
             frameCount++;
             
+            // Mudança de níveis otimizada e acelerada para a cada 20 segundos
             if (frameCount % 60 === 0) {
                 secondsElapsed++;
                 let mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
                 let secs = String(secondsElapsed % 60).padStart(2, '0');
                 document.getElementById("timer").innerText = `${mins}:${secs}`;
 
-                if (secondsElapsed % 30 === 0) {
+                if (secondsElapsed % 20 === 0) {
                     difficultyLevel++;
                     document.getElementById("wave").innerText = `Nível ${difficultyLevel}`;
                 }
             }
 
-            if (coffeeTimer > 0) {
-                coffeeTimer--;
-                document.getElementById("buff-coffee").style.display = "block";
-                document.getElementById("buff-coffee").innerText = `☕ Café Ativo (${(coffeeTimer/60).toFixed(1)}s)`;
-            } else { document.getElementById("buff-coffee").style.display = "none"; }
+            if (coffeeTimer > 0) coffeeTimer--;
+            if (slowTimer > 0) slowTimer--;
 
-            if (slowTimer > 0) {
-                slowTimer--;
-                document.getElementById("buff-slow").style.display = "block";
-                document.getElementById("buff-slow").innerText = `⏱️ Lentidão Ativa (${(slowTimer/60).toFixed(1)}s)`;
-            } else { document.getElementById("buff-slow").style.display = "none"; }
+            document.getElementById("buff-coffee").style.display = coffeeTimer > 0 ? "block" : "none";
+            document.getElementById("buff-slow").style.display = slowTimer > 0 ? "block" : "none";
 
             let currentSpeed = player.baseSpeed + (coffeeTimer > 0 ? 2.5 : 0);
+            let limitMargin = GRID_SIZE / 2 + 5;
 
-            if ((keys.w || keys.ArrowUp) && player.y > player.size + 10) player.y -= currentSpeed;
-            if ((keys.s || keys.ArrowDown) && player.y < canvas.height - player.size - 10) player.y += currentSpeed;
-            if ((keys.a || keys.ArrowLeft) && player.x > player.size + 10) player.x -= currentSpeed;
-            if ((keys.d || keys.ArrowRight) && player.x < canvas.width - player.size - 10) player.x += currentSpeed;
+            if ((keys.w || keys.ArrowUp) && player.y > limitMargin) player.y -= currentSpeed;
+            if ((keys.s || keys.ArrowDown) && player.y < canvas.height - limitMargin) player.y += currentSpeed;
+            if ((keys.a || keys.ArrowLeft) && player.x > limitMargin) player.x -= currentSpeed;
+            if ((keys.d || keys.ArrowRight) && player.x < canvas.width - limitMargin) player.x += currentSpeed;
 
             if (player.cooldown > 0) player.cooldown--;
-            if (keys[" "] && player.cooldown === 0) {
+            if ((keys[" "] || mousePressed) && player.cooldown === 0) {
                 const angle = Math.atan2(mouseY - player.y, mouseX - player.x);
-                bullets.push({ x: player.x, y: player.y, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10, size: 4 });
+                bullets.push({ x: player.x, y: player.y, vx: Math.cos(angle) * 11, vy: Math.sin(angle) * 11, size: 4 });
                 player.cooldown = player.maxCooldown;
+                playShootSound();
             }
 
             for (let i = bullets.length - 1; i >= 0; i--) {
-                bullets[i].x += bullets[i].vx;
-                bullets[i].y += bullets[i].vy;
+                bullets[i].x += bullets[i].vx; bullets[i].y += bullets[i].vy;
                 if (bullets[i].x < 0 || bullets[i].x > canvas.width || bullets[i].y < 0 || bullets[i].y > canvas.height) {
                     bullets.splice(i, 1);
                 }
             }
 
-            let spawnInterval = Math.max(12, 90 - (difficultyLevel * 12));
+            // Spawner de Inimigos Aleatórios Baseados no Nível
+            let spawnInterval = Math.max(12, 90 - (difficultyLevel * 8));
             if (frameCount % spawnInterval === 0) {
                 let side = Math.floor(Math.random() * 4);
                 let ex, ey;
-                if (side === 0) { ex = Math.random() * canvas.width; ey = -20; }
-                else if (side === 1) { ex = canvas.width + 20; ey = Math.random() * canvas.height; }
-                else if (side === 2) { ex = Math.random() * canvas.width; ey = canvas.height + 20; }
-                else { ex = -20; ey = Math.random() * canvas.height; }
+                if (side === 0) { ex = Math.random() * canvas.width; ey = -40; }
+                else if (side === 1) { ex = canvas.width + 40; ey = Math.random() * canvas.height; }
+                else if (side === 2) { ex = Math.random() * canvas.width; ey = canvas.height + 40; }
+                else { ex = -40; ey = Math.random() * canvas.height; }
 
-                enemies.push({ x: ex, y: ey, size: 14, baseSpeed: 1.8 + Math.random() * 0.8 + (difficultyLevel * 0.1) });
+                // Sorteador de classe de inimigo
+                let rand = Math.random();
+                let enemyType = 'normal';
+                let hp = 1;
+                let enemyScore = 10;
+                let speedMod = 1.0;
+
+                if (rand < 0.55) {
+                    enemyType = 'normal';
+                } else if (rand < 0.80) {
+                    enemyType = 'tank'; // Roxo: Lento, 2 de Vida, 20 Pontos
+                    hp = 2;
+                    enemyScore = 20;
+                    speedMod = 0.65;
+                } else {
+                    enemyType = 'speedy'; // Verde: Muito rápido, 1 de Vida, 10 Pontos
+                    hp = 1;
+                    enemyScore = 10;
+                    speedMod = 1.55;
+                }
+
+                let finalSpeed = (1.5 + Math.random() * 0.6 + (difficultyLevel * 0.12)) * speedMod;
+                enemies.push({ x: ex, y: ey, type: enemyType, hp: hp, maxHp: hp, score: enemyScore, baseSpeed: finalSpeed });
             }
 
             let enemySpeedModifier = (slowTimer > 0) ? 0.4 : 1.0;
@@ -430,34 +523,50 @@
                 enemy.x += Math.cos(angle) * (enemy.baseSpeed * enemySpeedModifier);
                 enemy.y += Math.sin(angle) * (enemy.baseSpeed * enemySpeedModifier);
 
-                if (getDistance(player.x, player.y, enemy.x, enemy.y) < player.size + enemy.size) {
-                    gameOver = true;
-                    currentScreen = 'GAMEOVER';
+                // Verificação de Colisão com Jogador (Otimizado por Quadrados)
+                if (getSqDist(player.x, player.y, enemy.x, enemy.y) < HIT_PLAYER_SQ) {
+                    gameOver = true; currentScreen = 'GAMEOVER'; mousePressed = false;
+                    document.getElementById("panel-ui").classList.add("hidden");
+                    document.getElementById("gameover-stats").innerText = `Pontos Obtidos: ${score}\nTempo Ativo: ${document.getElementById("timer").innerText}`;
+                    document.getElementById("panel-gameover").classList.remove("hidden");
                     saveScoreToAccount();
-                    buildLeaderboard();
-                    document.getElementById("gameover-stats").innerText = `Pontos obtidos: ${score} | Tempo: ${document.getElementById("timer").innerText}`;
-                    document.getElementById("screen-gameover").classList.remove("hidden");
+                    break;
                 }
 
+                // Verificação de Impacto dos Projéteis
                 for (let j = bullets.length - 1; j >= 0; j--) {
-                    if (getDistance(enemy.x, enemy.y, bullets[j].x, bullets[j].y) < enemy.size + bullets[j].size) {
-                        if (Math.random() < 0.25) {
-                            items.push({ x: enemy.x, y: enemy.y, type: Math.random() < 0.5 ? 'coffee' : 'slow', pulse: 0 });
-                        }
-                        enemies.splice(i, 1);
+                    if (getSqDist(enemy.x, enemy.y, bullets[j].x, bullets[j].y) < HIT_BULLET_SQ) {
+                        playHitSound();
                         bullets.splice(j, 1);
-                        score += 10; 
-                        document.getElementById("score").innerText = score;
+                        enemy.hp--;
+
+                        if (enemy.hp <= 0) {
+                            // Drop rate balanceado diminuído rigorosamente para 10%
+                            if (Math.random() < 0.10) {
+                                items.push({ x: enemy.x, y: enemy.y, type: Math.random() < 0.5 ? 'coffee' : 'slow', pulse: 0, lifetime: 600 }); // 600 frames = 10 segundos
+                            }
+                            score += enemy.score;
+                            document.getElementById("score").innerText = score;
+                            enemies.splice(i, 1);
+                        }
                         break;
                     }
                 }
             }
 
+            // Coleta e Contador de Expiração dos Modificadores (Máximo 10s no chão)
             for (let i = items.length - 1; i >= 0; i--) {
-                items[i].pulse += 0.1;
-                if (getDistance(player.x, player.y, items[i].x, items[i].y) < player.size + 15) {
-                    if (items[i].type === 'coffee') coffeeTimer = 12 * 60; 
-                    else if (items[i].type === 'slow') slowTimer = 15 * 60; 
+                items[i].pulse += 0.08;
+                items[i].lifetime--;
+
+                if (items[i].lifetime <= 0) {
+                    items.splice(i, 1);
+                    continue;
+                }
+
+                if (getSqDist(player.x, player.y, items[i].x, items[i].y) < HIT_ITEM_SQ) {
+                    if (items[i].type === 'coffee') coffeeTimer = 10 * 60; 
+                    else if (items[i].type === 'slow') slowTimer = 12 * 60; 
                     items.splice(i, 1);
                 }
             }
@@ -467,62 +576,123 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             if (currentScreen === 'AUTH') {
-                ctx.fillStyle = "#2c1a10";
-                ctx.fillRect(0,0,canvas.width, canvas.height);
+                ctx.fillStyle = "#1a110b"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "#f1c40f"; ctx.font = "bold 22px monospace"; ctx.textAlign = "center";
+                ctx.fillText("MAQUINA ARCADE ONLINE PRONTA", 350, 330);
+                ctx.fillStyle = "#bdc3c7"; ctx.font = "14px monospace";
+                ctx.fillText("Insira sua ficha fazendo login ao lado", 350, 370);
                 return;
             }
 
+            // 1. Desenho dos Modificadores (Itens com Alerta Visual Desaparecendo)
             items.forEach(item => {
-                let offset = Math.sin(item.pulse) * 4;
-                ctx.fillStyle = item.type === 'coffee' ? '#d35400' : '#8e44ad';
-                ctx.fillRect(item.x - 12, item.y - 12 + offset, 24, 24);
-                ctx.fillStyle = item.type === 'coffee' ? '#e67e22' : '#9b59b6';
-                ctx.fillRect(item.x - 9, item.y - 9 + offset, 18, 18);
-                ctx.fillStyle = "#fff";
-                ctx.font = "bold 16px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-                ctx.fillText("?", item.x, item.y + offset);
+                // Se faltar menos de 2 segundos (120 frames), faz o item piscar no estilo fliperama antigo
+                if (item.lifetime < 120 && Math.floor(item.lifetime / 8) % 2 === 0) return;
+
+                let offset = Math.sin(item.pulse) * 5;
+                ctx.save();
+                ctx.translate(item.x, item.y + offset);
+                ctx.scale(SCALE_FACTOR, SCALE_FACTOR); // Reduzido perfeitamente em 0.65x
+
+                ctx.fillStyle = "#000"; ctx.fillRect(-22, -22, 44, 44);
+                ctx.fillStyle = item.type === 'coffee' ? '#e67e22' : '#2ecc71';
+                ctx.fillRect(-19, -19, 38, 38);
+
+                if (item.type === 'coffee') {
+                    ctx.fillStyle = "#fff"; ctx.fillRect(-10, -4, 20, 14); 
+                    ctx.fillRect(10, -1, 4, 6); ctx.fillStyle = "#795548"; ctx.fillRect(-10, -4, 20, 3);   
+                } else {
+                    ctx.fillStyle = "#fff"; ctx.beginPath();
+                    ctx.moveTo(0, 12); ctx.lineTo(-12, -4); ctx.lineTo(-5, -4);
+                    ctx.lineTo(-5, -14); ctx.lineTo(5, -14); ctx.lineTo(5, -4);
+                    ctx.lineTo(12, -4); ctx.closePath(); ctx.fill();
+                }
+                ctx.restore();
             });
 
+            // 2. Desenho das Classes de Inimigos (Redimensionados e Customizados)
             enemies.forEach(e => {
-                ctx.fillStyle = "#962d22"; 
-                ctx.beginPath(); ctx.moveTo(e.x - 10, e.y - 8); ctx.lineTo(e.x - 15, e.y - 18); ctx.lineTo(e.x - 4, e.y - 4);
-                ctx.moveTo(e.x + 10, e.y - 8); ctx.lineTo(e.x + 15, e.y - 18); ctx.lineTo(e.x + 4, e.y - 4); ctx.fill();
+                ctx.save();
+                ctx.translate(e.x, e.y);
+                ctx.scale(SCALE_FACTOR, SCALE_FACTOR); // Reduzido perfeitamente em 0.65x
 
-                ctx.fillStyle = "#e74c3c"; 
-                ctx.fillRect(e.x - e.size, e.y - e.size, e.size * 2, e.size * 2);
-                ctx.fillStyle = "#7f2216"; ctx.fillRect(e.x - 6, e.y + 4, 12, 3); 
+                ctx.strokeStyle = "#000"; ctx.lineWidth = 5; ctx.lineJoin = "miter";
+                ctx.strokeRect(-32, -32, 64, 64);
 
-                ctx.fillStyle = "#f1c40f"; 
-                ctx.fillRect(e.x - 6, e.y - 4, 4, 4); ctx.fillRect(e.x + 2, e.y - 4, 4, 4);
+                if (e.type === 'normal') {
+                    // INIMIGO PADRÃO: VERMELHO
+                    ctx.fillStyle = "#e74c3c"; ctx.fillRect(-32, -32, 64, 64);
+                    ctx.fillStyle = "#000"; ctx.fillRect(-18, -14, 12, 12); ctx.fillRect(6, -14, 12, 12); 
+                    ctx.fillStyle = "#f1c40f"; ctx.fillRect(-16, -12, 8, 8); ctx.fillRect(8, -12, 8, 8);     
+                    ctx.fillStyle = "#7f2216"; ctx.fillRect(-16, 12, 32, 8);      
+                    ctx.beginPath(); ctx.moveTo(-20, -32); ctx.lineTo(-26, -46); ctx.lineTo(-8, -32); ctx.closePath(); ctx.fill(); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(20, -32); ctx.lineTo(26, -46); ctx.lineTo(8, -32); ctx.closePath(); ctx.fill(); ctx.stroke();
+                } 
+                else if (e.type === 'tank') {
+                    // NOVO INIMIGO ROXO: ELMO DE PROTEÇÃO E OLHO DE CICLOPE
+                    ctx.fillStyle = "#9b59b6"; ctx.fillRect(-32, -32, 64, 64);
+                    ctx.fillStyle = "#5d3f8a"; ctx.fillRect(-32, 10, 64, 22); // Armadura inferior
+                    ctx.fillStyle = "#000"; ctx.strokeRect(-32, 10, 64, 22);
+                    // Elmo Placa de Aço Superior
+                    ctx.fillStyle = "#7f8c8d"; ctx.fillRect(-32, -32, 64, 18); ctx.strokeRect(-32, -32, 64, 18);
+                    // Olho Ciclope Único Energizado
+                    ctx.fillStyle = "#000"; ctx.fillRect(-14, -10, 28, 18);
+                    ctx.fillStyle = "#f1c40f"; ctx.fillRect(-10, -7, 20, 12);
+                    ctx.fillStyle = e.hp > 1 ? "#e74c3c" : "#fff"; ctx.fillRect(-4, -4, 8, 6); // Muda cor se tomar 1 tiro
+                } 
+                else if (e.type === 'speedy') {
+                    // NOVO INIMIGO VERDE: VELOZ, AERODINÂMICO
+                    ctx.fillStyle = "#2ecc71"; ctx.fillRect(-32, -32, 64, 64);
+                    // Listras de Velocidade Esportivas Laterais (Skin ágil)
+                    ctx.fillStyle = "#27ae60"; ctx.fillRect(-32, -20, 10, 40); ctx.fillRect(22, -20, 10, 40);
+                    // Olhos Puxados Malignos de Inseto Ninja
+                    ctx.fillStyle = "#000";
+                    ctx.beginPath(); ctx.moveTo(-26, -16); ctx.lineTo(-6, -6); ctx.lineTo(-24, -2); ctx.closePath(); ctx.fill();
+                    ctx.beginPath(); ctx.moveTo(26, -16); ctx.lineTo(6, -6); ctx.lineTo(24, -2); ctx.closePath(); ctx.fill();
+                    ctx.fillStyle = "#f39c12"; ctx.fillRect(-16, -11, 4, 3); ctx.fillRect(12, -11, 4, 3);
+                    // Máscara Protetora Aerodinâmica
+                    ctx.fillStyle = "#d35400"; ctx.fillRect(-18, 12, 36, 12); ctx.strokeRect(-18, 12, 36, 12);
+                }
+
+                ctx.restore();
             });
 
-            ctx.fillStyle = "#2980b9"; ctx.fillRect(player.x - player.size, player.y - player.size + 4, player.size * 2, player.size * 2 - 4);
-            ctx.fillStyle = "#ffdbac"; ctx.fillRect(player.x - 10, player.y - 12, 20, 14); 
-            ctx.fillStyle = "#5c4033"; ctx.fillRect(player.x - 18, player.y - 14, 36, 4); 
-            ctx.fillRect(player.x - 10, player.y - 23, 20, 9); 
-            ctx.fillStyle = "#d35400"; ctx.fillRect(player.x - 10, player.y - 16, 20, 2); 
+            // 3. Desenho do Caubói (Jogador Reduzido)
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            ctx.scale(SCALE_FACTOR, SCALE_FACTOR); // Reduzido perfeitamente em 0.65x
+
+            ctx.strokeStyle = "#000"; ctx.lineWidth = 5;
+            ctx.strokeRect(-24, -6, 48, 38); ctx.fillStyle = "#2980b9"; ctx.fillRect(-24, -6, 48, 38);
+            ctx.strokeRect(-16, -28, 32, 22); ctx.fillStyle = "#ffdbac"; ctx.fillRect(-16, -28, 32, 22);
+            ctx.fillStyle = "#5c4033"; ctx.beginPath(); ctx.rect(-34, -32, 68, 6); ctx.rect(-18, -48, 36, 16); ctx.closePath(); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = "#d35400"; ctx.fillRect(-18, -36, 36, 4); 
 
             const lookAngle = Math.atan2(mouseY - player.y, mouseX - player.x);
-            let ox = Math.cos(lookAngle) * 3, oy = Math.sin(lookAngle) * 2;
-            ctx.fillStyle = "#000"; ctx.fillRect(player.x - 6 + ox, player.y - 6 + oy, 3, 4); ctx.fillRect(player.x + 3 + ox, player.y - 6 + oy, 3, 4);
+            let ox = Math.cos(lookAngle) * 4, oy = Math.sin(lookAngle) * 2;
+            ctx.fillStyle = "#000"; ctx.fillRect(-10 + ox, -20 + oy, 5, 6); ctx.fillRect(5 + ox, -20 + oy, 5, 6);
 
-            ctx.fillStyle = "#2c3e50";
-            bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2); ctx.fill(); });
+            ctx.restore();
 
-            if (currentScreen === 'PLAYING') {
-                ctx.strokeStyle = "#e74c3c"; ctx.lineWidth = 2; ctx.beginPath();
-                ctx.arc(mouseX, mouseY, 6, 0, Math.PI * 2);
-                ctx.moveTo(mouseX - 12, mouseY); ctx.lineTo(mouseX + 12, mouseY);
-                ctx.moveTo(mouseX, mouseY - 12); ctx.lineTo(mouseX, mouseY + 12); ctx.stroke();
-            }
+            // 4. Desenho Projéteis Ajustados
+            ctx.fillStyle = "#2c3e50"; ctx.strokeStyle = "#000"; ctx.lineWidth = 2;
+            bullets.forEach(b => {
+                ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            });
+
+            // 5. Retículo da Mira
+            ctx.strokeStyle = "#e74c3c"; ctx.lineWidth = 2; ctx.beginPath();
+            ctx.arc(mouseX, mouseY, 7, 0, Math.PI * 2);
+            ctx.moveTo(mouseX - 14, mouseY); ctx.lineTo(mouseX + 14, mouseY);
+            ctx.moveTo(mouseX, mouseY - 14); ctx.lineTo(mouseX, mouseY + 14);
+            ctx.stroke();
         }
 
         function gameLoop() {
-            update();
-            draw();
-            requestAnimationFrame(gameLoop);
+            update(); draw(); requestAnimationFrame(gameLoop);
         }
 
+        fetchCloudDatabase();
         gameLoop();
     </script>
 </body>
